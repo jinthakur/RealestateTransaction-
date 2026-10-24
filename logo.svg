@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="RealestateTransaction logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b2a52"/>
+      <stop offset="1" stop-color="#0f1420"/>
+    </linearGradient>
+    <linearGradient id="house" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7fb0ff"/>
+      <stop offset="1" stop-color="#4f7fe8"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="104" fill="url(#bg)"/>
+  <!-- house -->
+  <path d="M256 92 L96 232 H132 V386 a14 14 0 0 0 14 14 H366 a14 14 0 0 0 14-14 V232 H416 Z" fill="url(#house)"/>
+  <!-- roof edge highlight -->
+  <path d="M256 92 L96 232 H132 L256 123 L380 232 H416 Z" fill="#a9c8ff"/>
+  <!-- shield (escrow) -->
+  <path d="M256 214 L316 238 V288 C316 326 290 352 256 366 C222 352 196 326 196 288 V238 Z" fill="#0f1420"/>
+  <path d="M256 226 L304 245 V288 C304 318 283 340 256 352 C229 340 208 318 208 288 V245 Z" fill="#3ecf8e"/>
+  <!-- check mark -->
+  <path d="M233 288 L250 306 L282 268" fill="none" stroke="#0f1420" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,14 @@
+node_modules/
+.env
+artifacts/
+audit/
+deployment.json
+.ap4m-state/
+portal-data.json
+agent-log.jsonl
+uploads/
+run-logs/
+
+_demo.log
+_ui.out
+_ui.sh
