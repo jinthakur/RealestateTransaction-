@@ -27,7 +27,7 @@ interface Item { ok: boolean; notes: string }
 const ROLES = ["inspector", "buyer", "seller", "attorney"];
 interface Note { by: string; text: string; at: string }
 interface Doc { by: string; name: string; size: number; sha256: string; uploadedAt: string; file: string }
-interface Inspection { complete: boolean; passed?: boolean; inspector?: string; submittedAt?: string; items?: Record<string, Item>; documents: Doc[]; messages: Note[] }
+interface Inspection { complete: boolean; passed?: boolean; verification?: "yes" | "no"; inspector?: string; submittedAt?: string; items?: Record<string, Item>; documents: Doc[]; messages: Note[] }
 type Store = Record<string, Inspection>;
 
 const load = (): Store => (fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE, "utf8")) : {});
@@ -97,9 +97,13 @@ app.post("/api/inspection/:deal", (req, res) => {
     if (!i || typeof i.ok !== "boolean") return res.status(400).json({ error: `missing result for ${t}` });
     items[t] = { ok: i.ok, notes: String(i.notes ?? "").slice(0, 500) };
   }
+  const answer = String(req.body?.verification ?? "").trim().toLowerCase();
+  const verification = answer === "yes" || answer === "y" ? "yes" : answer === "no" || answer === "n" ? "no" : null;
+  if (!verification) return res.status(400).json({ error: 'type "yes" or "no" in the inspection verification box' });
   Object.assign(r, {
     complete: true,
-    passed: Object.values(items).every((i) => i.ok),
+    verification,
+    passed: verification === "yes" && Object.values(items).every((i) => i.ok),
     inspector: String(req.body?.inspector ?? "").slice(0, 80) || "Licensed inspector",
     submittedAt: new Date().toISOString(),
     items,
@@ -214,6 +218,7 @@ ${comms("inspector")}
 <section class="card" id="form"><h2>Inspection report (needs at least one uploaded document)</h2>
 <label>Inspector name / licence</label><input type="text" id="who" value="Pat Rivera, NYS Lic. 16000054321">
 <div id="items"></div>
+<label>Inspection verification: does this home pass inspection? Type yes or no</label><input type="text" id="verify" placeholder="yes or no" autocomplete="off">
 <button class="g" id="submit">Mark inspection complete &amp; submit</button><button class="x" id="reset">Reset (demo)</button>
 <div id="msg"></div></section>
 <section class="card"><h2>Submitted report</h2><div id="done">Not submitted yet.</div></section>
@@ -224,10 +229,11 @@ $('deal').textContent=deal; ${DOCS_JS}
 $('items').innerHTML=TYPES.map(t=>'<div class="item"><b>'+t+'</b><span class="seg"><label><input type="radio" name="'+t+'" value="1" checked><span>Pass</span></label></span><span class="seg f"><label><input type="radio" name="'+t+'" value="0"><span>Fail</span></label></span><textarea id="n-'+t+'" rows="2" placeholder="Findings / notes"></textarea></div>').join('');
 function show(r){ const d=$('done'); d.textContent=''; if(!r.complete){d.textContent='Not submitted yet.'; $('submit').disabled=false; return;}
  const h=document.createElement('p'); h.textContent=(r.passed?'PASSED':'FAILED')+' - '+r.inspector+' - '+new Date(r.submittedAt).toLocaleString(); d.appendChild(h);
+ const vp=document.createElement('p'); vp.textContent='Inspector verification: '+(r.verification||'n/a'); d.appendChild(vp);
  for(const [k,v] of Object.entries(r.items)){const p=document.createElement('p'); p.textContent=(v.ok?'[pass] ':'[FAIL] ')+k+(v.notes?': '+v.notes:''); d.appendChild(p);} $('submit').disabled=true; }
 async function refresh(){ show(await (await fetch('/api/inspection/'+deal)).json()); }
 $('submit').onclick=async()=>{ const items={}; for(const t of TYPES) items[t]={ok:document.querySelector('input[name='+t+']:checked').value==='1',notes:$('n-'+t).value};
- const r=await fetch('/api/inspection/'+deal,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({inspector:$('who').value,items})});
+ const r=await fetch('/api/inspection/'+deal,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({inspector:$('who').value,verification:$('verify').value,items})});
  $('msg').textContent=r.ok?'Submitted. The deal agent will pick this up.':(await r.json()).error; refresh(); };
 $('reset').onclick=async()=>{ await fetch('/api/inspection/'+deal+'/reset',{method:'POST'}); $('msg').textContent='Reset.'; refresh(); };
 refresh(); setInterval(refresh,4000);

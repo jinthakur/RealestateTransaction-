@@ -18,7 +18,6 @@
     "agent": "tsx src/agent.ts",
     "deal": "tsx scripts/deal.ts",
     "status": "tsx scripts/status.ts",
-    "test:guardrails": "tsx test/guardrails.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

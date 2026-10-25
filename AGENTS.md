@@ -1,7 +1,17 @@
-# AGENTS.md: AP4M Hackathon project
+# AGENTS.md: RealestateTransaction
 
-Instructions for AI coding agents working in this project. This project builds on the AP4M payment kit for the
-Mastercard XRPL Hackathon: an Agent that pays within a funded budget, and optionally an x402 Merchant.
+Instructions for AI coding agents working in this project. RealestateTransaction is an AI agent that supervises a home-purchase
+deposit escrow on XRPL EVM Testnet and pays for inspection checks with Mastercard AP4M (x402, RLUSD Channel vouchers), built on the AP4M
+payment kit for the Mastercard XRPL Hackathon. Read `README.md` (what it does, live tx evidence) and `CLAUDE.md` (roles, commands, rules) first.
+
+## Project layout
+
+- `contracts/RealEstateEscrow.sol`: 10% deposit, inspection, walkthrough, buyer + seller approval, attorney cancel/refund.
+- `src/orchestrator.ts` (deal agent, Bedrock or rules mode), `src/agent.ts` (inspection session and code-level guardrails), `src/ap4m.ts` (AP4M rail),
+  `src/portal.ts` (role pages, including the inspector's yes/no verification box), `src/dashboard.ts`, `src/announce.ts` (SMTP "From -> To" emails).
+- Config lives in `.env` (see `.env.example`): `SMTP_HOST/PORT/USER/PASS` and `NOTIFY_TO` for email; `AWS_CREDENTIALS_FILE`, `AWS_REGION`,
+  `BEDROCK_MODEL_ID` and `AGENT_MODE` for the agent; `PAYMENTS` and `AP4M_*` for payments.
+- `legacy/` is the old construction-milestone version; leave it alone.
 
 ## Read first
 

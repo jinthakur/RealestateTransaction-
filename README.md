@@ -17,7 +17,7 @@ Buying a home moves a large deposit between strangers on trust. The buyer wires 
 **RealestateTransaction** runs the deposit stage of a home purchase as an escrow on XRPL EVM, supervised by an AI agent.
 
 1. **Sign and deposit.** The buyer signs the contract and deposits exactly 10% of the price into the seller's attorney's escrow account. The contract enforces the amount. The seller cannot touch it.
-2. **Human inspection.** A real home inspector writes the report and uploads documents (PDF, photos, notes) on their own page. The attorney, buyer and seller can post messages and documents on theirs.
+2. **Human inspection.** A real home inspector writes the report and uploads documents (PDF, photos, notes) on their own page, then types **yes** or **no** in an inspection verification box (does the home pass?). A "no", or any failed item, fails the report. The attorney, buyer and seller can post messages and documents on theirs.
 3. **The AI agent checks everything.** An agent on Amazon Bedrock confirms the deposit is really in escrow on-chain, reads the inspector's report, the documents and every message, and pays for four independent cross-checks (structure, roof, systems, pests) from x402 merchants, paid in RLUSD with Mastercard AP4M Channel vouchers. It then records PASSED or FAILED on-chain, which approves or blocks the next stage.
 4. **Final walkthrough.** The buyer walks through the home one last time and records the result on the buyer page.
 5. **Both say OK.** The buyer and the seller each approve. The moment both have, the contract pays the deposit to the seller and the deal is closed.
@@ -107,7 +107,7 @@ npm run ap4m:merchant           # 3  AP4M check merchants (PAYMENTS=ap4m). For X
 npm run orchestrate -- 1        # 4  the Bedrock deal agent
 ```
 
-Demo order: inspector uploads a document and submits the report → agent verifies and records PASS → buyer records the final walkthrough → seller approves → buyer approves → deal closes.
+Demo order: inspector uploads a document, types yes/no in the verification box and submits the report → agent verifies and records PASS → buyer records the final walkthrough → seller approves → buyer approves → deal closes.
 Failure demo: submit a report with a failed item; the agent records FAIL; the attorney cancels on the attorney page and the buyer gets the deposit back.
 
 Handy commands: `npm run status -- 1` (on-chain history), `npm run ap4m -- status|settle|close` (AP4M Channel), `npm run deal -- <action> 1` (command-line version of the portal buttons).
@@ -128,7 +128,11 @@ See `.env.example`. Key settings: `MNEMONIC` (testnet only), `AGENT_MODE=bedrock
   - Final walkthrough: https://explorer.testnet.xrplevm.org/tx/0x17718174cdb7acfa3d1fca0a2c4c44f7d04cdfb0a62060ea0f5c8722f6b76bd6
   - Seller approved: https://explorer.testnet.xrplevm.org/tx/0x3aa2d3970bb8259083d8885549cc46eb0416160e64384f70deb69f90193f92a9
   - Buyer approved and deal closed (deposit paid to seller): https://explorer.testnet.xrplevm.org/tx/0xdd1f2c67fd7746d6ab6426e0561b8ced6d4283caa143d0418df653761b1fbdad
-- AP4M check payments (RLUSD voucher redemptions): structure `0xa872…0604`, roof `0xc2c1…4019`, systems `0x7ad6…a8144`, pests `0x7e60…9fa5` (search them on the explorer)
+- AP4M check payments (RLUSD voucher redemptions):
+  - structure: https://explorer.testnet.xrplevm.org/tx/0xa87238d39644ee3a753c3526ba205a6dc5324ed3f513898d3d0c162a03870604
+  - roof: https://explorer.testnet.xrplevm.org/tx/0xc2c117b62d23306bb2b9cba31923c54b45eee5ff5056b7b3b20e9380bfd54019
+  - systems: https://explorer.testnet.xrplevm.org/tx/0x7ad6d8bab13347ee804a9ea49c4ed1c6dded5df994808c8b85d97ad4ef6a8144
+  - pests: https://explorer.testnet.xrplevm.org/tx/0x7e604565c08e3715dcf1a4ac70f6780a649734ec624f448866e7c48da1599fa5
 - AP4M Channel: `0x1983d9a085bd303a2ed5e8d2efccdf5b022a17a2c95e70c012a21b0aa953c61d`
 - AP4M voucher redemption (0.01 RLUSD): https://explorer.testnet.xrplevm.org/tx/0xb6f7c97d3cbdd9ee98ff48f39aab8719171a96f8c8bcc16cf00c3804673a611c
 - AP4M receipt: `https://hackathon.ap4m.build/public/evidence/claims/0x71f7b0a2252a15e43a42308a83d01d8048917b253a93718d042b1d76bc76b331/0x539aae7bd81af3253741d9ffbaca343e64faf669f85a0bc6c30b977007ad20a1.json`
