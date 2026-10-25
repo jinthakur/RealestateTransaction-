@@ -43,7 +43,7 @@ app.get("/api/inspection/:deal", (req, res) => {
   // Text documents are included so the agent can read them; PDFs and images are listed with hashes only.
   const documents = r.documents.map((d) => {
     const ext = d.name.split(".").pop()?.toLowerCase();
-    const excerpt = ext === "txt" || ext === "md" ? fs.readFileSync(path.join(UPLOADS, d.file), "utf8").slice(0, 1500) : undefined;
+    const excerpt = ext === "txt" || ext === "md" ? fs.readFileSync(path.join(UPLOADS, d.file), "utf8").slice(0, 6000) : undefined;
     return { ...d, url: `/files/${req.params.deal}/${encodeURIComponent(d.file.split(/[\\/]/).pop()!)}`, excerpt };
   });
   res.json({ ...r, documents });

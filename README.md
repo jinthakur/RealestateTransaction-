@@ -78,6 +78,17 @@ Buyer ──10% deposit──▶ RealEstateEscrow (seller's attorney escrow)
 | checkService | 3 | submits merchant voucher redemptions (needs gas) |
 | seller | 4 | approves, receives the deposit |
 
+## Contract intake (optional start of the demo)
+
+Instead of opening the escrow at a fixed 10%, the agent can start from the **purchase contract**. The seller's attorney uploads a contract on the attorney page (file name must contain "contract"). The agent reads the **contract date** and the **deposit percentage (10% or 20%)** and only then opens the escrow with that deposit. If the contract cannot be read (PDF or image, missing or conflicting date, an unsupported percentage), nothing is executed: the agent emails the buyer and attorney and waits for a new upload.
+
+```powershell
+$env:INTAKE="1"; $env:REDEPLOY="1"; npm run deploy   # deploys the escrow only
+npm run intake -- 1                                  # waits for the attorney's contract, then opens the escrow
+```
+
+Sample contracts to upload are in `sample-contracts/`: `purchase-contract-10pct.txt`, `purchase-contract-20pct.txt`, and `purchase-contract-unreadable.txt` (15% deposit and no date, to show the email path). Reading is deterministic first; with `AGENT_MODE=bedrock` an Amazon Bedrock call is a fallback for unusual wording, and its answer is re-validated in code. `npm test` runs the offline parser tests. Only `.txt` and `.md` contracts are read for now.
+
 ## Demo pages
 
 | Page | URL |

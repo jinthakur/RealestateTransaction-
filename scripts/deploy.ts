@@ -1,5 +1,7 @@
 // Deploys RealEstateEscrow and signs the contract: the buyer deposits 10% of the price
 // into the seller's attorney escrow. Usage: npm run deploy -- [dealId] ["property"]
+// With INTAKE=1 it only deploys; `npm run intake` then reads the attorney's uploaded contract
+// and opens the escrow with the 10% or 20% deposit the contract says.
 import fs from "node:fs";
 import { ethers } from "ethers";
 import { CHAIN_ID, DEPLOYMENT_FILE, PRICE, PROPERTY, fmt, loadArtifact, txLink, txSigner, wallet } from "../src/config.js";
@@ -27,13 +29,15 @@ if (fs.existsSync(DEPLOYMENT_FILE) && !process.env.REDEPLOY) {
 
 const escrow = new ethers.Contract(escrowAddress, abi, buyer);
 const existing = await escrow.deals(dealId);
-if (Number(existing.status) !== 0) {
+if (process.env.INTAKE) {
+  console.log(`Escrow ready. Upload the contract on the attorney page, then run: npm run intake -- ${dealId}`);
+} else if (Number(existing.status) !== 0) {
   console.log(`Deal ${dealId} already exists (status ${existing.status}); not opening again.`);
 } else {
   const price = ethers.parseEther(PRICE);
   const deposit = price / 10n;
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 30 * 24 * 3600);
-  const tx = await escrow.openDeal(dealId, price, deadline, property, { value: deposit });
+  const tx = await escrow.openDeal(dealId, price, 1000, deadline, property, { value: deposit });
   console.log(`Buyer signs contract and deposits 10% (${fmt(deposit)} of ${fmt(price)}) ... ${txLink(tx.hash)}`);
   await announce(escrow, await tx.wait());
 }

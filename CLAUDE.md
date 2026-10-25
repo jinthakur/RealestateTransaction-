@@ -28,13 +28,16 @@ a passed walkthrough, buyer OK and seller OK. If it fails, the attorney cancels 
 Also `status -- 1`, `ap4m -- status|settle|close`, `deal -- <action> 1`, `typecheck`.
 Demo order: inspector uploads a document, types **yes/no** in the inspection verification box and submits -> agent pays checks and records PASS -> buyer walkthrough -> seller OK -> buyer OK -> deal closes.
 
+## Contract intake
+`INTAKE=1 REDEPLOY=1 npm run deploy` deploys only; `npm run intake -- 1` waits for a contract uploaded on the **attorney** page (file name contains "contract"), reads the contract date and a 10% or 20% deposit (`src/contract.ts`, regex first, Bedrock fallback), then calls `openDeal(dealId, price, depositBps, ...)`. Unreadable contract: no execution, email to buyer and attorney, wait for a new upload. The contract only accepts 1000 or 2000 bps. Samples in `sample-contracts/`, tests via `npm test`. The escrow ABI changed (new `depositBps`), so an old `deployment.json` needs `REDEPLOY=1`.
+
 ## Inspection verification
 The inspector page has a text box where the inspector types `yes` or `no` (does the home pass?). The portal rejects anything else. PASS requires `yes` AND every item passing; `no` always fails the report, and the agent cannot pass over a failed report.
 
 ## State
 - A full deal closed on XRPL EVM Testnet, driven by the Bedrock agent, with four AP4M RLUSD voucher payments redeemed on-chain (hashes in README).
 - Mocked: inspection check results (stand-ins for real inspection/title services); portal actions are signed by demo testnet wallets held by the server.
-- No automated test suite for `RealEstateEscrow` yet. `legacy/guardrails.ts` belongs to the old milestone-escrow version and is not wired up.
+- Only the contract parser has automated tests (`npm test`); there are none for `RealEstateEscrow` itself, and the new intake flow has not been run on-chain yet. `legacy/guardrails.ts` belongs to the old milestone-escrow version and is not wired up.
 
 ## Rules for working on this
 - Never print, log or commit MNEMONIC, private keys, SMTP password or AWS credentials. `.env`, `.ap4m-state/`, `uploads/`, `audit/`, `portal-data.json` and `awscredential.txt` stay out of git.

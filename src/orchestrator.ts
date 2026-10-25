@@ -1,6 +1,6 @@
 // Deal agent: runs the whole home-purchase flow, start to finish.
 //
-//   1. verifies the buyer's 10% deposit really is in the attorney escrow (on-chain)
+//   1. verifies the buyer's deposit (10% or 20%) really is in the attorney escrow (on-chain)
 //   2. watches the portal until the human inspector has written the report and uploaded documents,
 //      and reads every message the inspector, attorney, buyer and seller posted
 //   3. cross-checks with the paid inspection checks (x402 / AP4M)
@@ -78,8 +78,8 @@ async function runRules() {
     if (deal.status === "Cancelled") return log("done", `Deal ${dealId} CANCELLED: the deposit was returned to the buyer.`);
 
     const tx = await session.getTransactions();
-    if (!tx.depositConfirmedOnChain) { say("Waiting for the 10% deposit to show up in escrow."); await sleep(10_000); continue; }
-    await tell("Attorney", "Deposit verified on-chain", `I checked the blockchain: the 10% deposit of ${deal.depositInAttorneyEscrow} is in your escrow account. Next I am waiting for the inspector's report.`);
+    if (!tx.depositConfirmedOnChain) { say("Waiting for the deposit to show up in escrow."); await sleep(10_000); continue; }
+    await tell("Attorney", "Deposit verified on-chain", `I checked the blockchain: the deposit of ${deal.depositInAttorneyEscrow} is in your escrow account. Next I am waiting for the inspector's report.`);
 
     if (!deal.inspectionAlreadyRecorded) {
       const portal = await session.readPortal(PORTAL_URL);
@@ -127,7 +127,7 @@ async function runRules() {
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ json: { type: "object", properties, required } as never });
 const TOOLS: Tool[] = [
   { toolSpec: { name: "get_deal", description: "Read the deal from the blockchain: status, price, deposit, inspection / walkthrough / buyer OK / seller OK flags.", inputSchema: obj() } },
-  { toolSpec: { name: "get_transactions", description: "List this deal's on-chain transactions and what the attorney escrow really holds. Confirms the 10% deposit.", inputSchema: obj() } },
+  { toolSpec: { name: "get_transactions", description: "List this deal's on-chain transactions and what the attorney escrow really holds. Confirms the deposit.", inputSchema: obj() } },
   { toolSpec: { name: "read_portal", description: "Read everything on the portal for this deal: the human inspector's report (complete=false until submitted), every uploaded document (name, size, sha256, text excerpt for .txt/.md), and every message written by the inspector, attorney, buyer and seller.", inputSchema: obj() } },
   { toolSpec: { name: "run_check", description: "Buy one independent inspection check (structure, roof, systems, pests) from the paid service. Costs a small payment.", inputSchema: obj({ type: { type: "string", enum: [...CHECK_TYPES] } }, ["type"]) } },
   { toolSpec: { name: "report_inspection", description: "Record the inspection result on-chain; this approves (or blocks) the next stage. Refused in code unless the portal report is complete and all four checks ran. passed=true only if the portal report AND all checks pass AND no party's message raises an unresolved problem. Never moves money.", inputSchema: obj({ passed: { type: "boolean" }, summary: { type: "string" } }, ["passed", "summary"]) } },
@@ -136,11 +136,11 @@ const TOOLS: Tool[] = [
   { toolSpec: { name: "finish", description: "End your run with a final plain-language report once the deal is Closed or Cancelled (or you must stop).", inputSchema: obj({ summary: { type: "string" } }, ["summary"]) } },
 ];
 
-const SYSTEM = `You are the deal agent for a home purchase on a blockchain escrow. The buyer's 10% deposit sits in the seller's attorney escrow.
+const SYSTEM = `You are the deal agent for a home purchase on a blockchain escrow. The buyer's deposit (10% or 20%) sits in the seller's attorney escrow.
 The deposit goes to the seller only when: the home inspection passed AND the buyer's final walkthrough passed AND the buyer approved AND the seller approved. Then the deal closes automatically.
 Real people use the portal: a human inspector writes the report and uploads documents; the attorney, buyer and seller can post messages and documents too. Read them carefully.
 Work in this order and keep going until the deal is Closed or Cancelled:
-1. get_deal, then get_transactions: confirm the 10% deposit is really in escrow. If not, wait and re-check; never buy checks without it. Then tell the Attorney (send_message) that the deposit is verified.
+1. get_deal, then get_transactions: confirm the deposit is really in escrow. If not, wait and re-check; never buy checks without it. Then tell the Attorney (send_message) that the deposit is verified.
 2. read_portal repeatedly (wait between reads; send_message to the Inspector once if the report is missing) until the inspector has submitted the report. Read all messages and text documents from every role. If any party raises a problem, mention it in your decision.
 3. run_check for structure, roof, systems and pests (once each) as an independent cross-check.
 4. report_inspection: passed=true only if the portal report passed, every check passed and no party raised an unresolved problem; otherwise passed=false with the specific reason. This is the stage approval; it is final.

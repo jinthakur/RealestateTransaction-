@@ -82,19 +82,20 @@ export class InspectionSession {
       escrow: this.escrow.target,
       escrowHoldsNow: fmt(held),
       depositExpected: fmt(d.deposit),
-      depositIsTenPercentOfPrice: d.deposit * 10n === d.price,
+      depositPercent: Number(d.depositBps) / 100,
+      depositMatchesContractPercent: d.deposit * 10_000n === d.price * BigInt(d.depositBps) && (Number(d.depositBps) === 1000 || Number(d.depositBps) === 2000),
       depositConfirmedOnChain: events.some((e) => e.event === "DealOpened") && held >= d.deposit && d.deposit > 0n,
       events,
     };
   }
 
-  /** Code guardrail: never spend on checks unless the 10% deposit is verifiably in escrow. */
+  /** Code guardrail: never spend on checks unless the 10% or 20% deposit is verifiably in escrow. */
   private async requireDeposit(): Promise<string | null> {
     const t = await this.getTransactions();
     const status = STATUS[Number((await this.escrow.deals(this.dealId)).status)];
     if (status !== "Deposited") return `deal is ${status}; no inspection needed`;
-    if (!t.depositConfirmedOnChain) return "the 10% deposit is not confirmed in escrow on-chain";
-    if (!t.depositIsTenPercentOfPrice) return "the deposit is not 10% of the price";
+    if (!t.depositConfirmedOnChain) return "the deposit is not confirmed in escrow on-chain";
+    if (!t.depositMatchesContractPercent) return "the deposit is not exactly 10% or 20% of the price";
     return null;
   }
 
@@ -219,14 +220,14 @@ async function runRules(s: InspectionSession) {
 
 const TOOLS: Tool[] = [
   { toolSpec: { name: "get_deal", description: "Read the deal: property, price, deposit held in the seller's attorney escrow, status.", inputSchema: { json: { type: "object", properties: {} } } } },
-  { toolSpec: { name: "get_transactions", description: "Check the deal's on-chain transactions and what the attorney escrow actually holds. Use this first to confirm the 10% deposit really arrived.", inputSchema: { json: { type: "object", properties: {} } } } },
+  { toolSpec: { name: "get_transactions", description: "Check the deal's on-chain transactions and what the attorney escrow actually holds. Use this first to confirm the deposit really arrived.", inputSchema: { json: { type: "object", properties: {} } } } },
   { toolSpec: { name: "get_budget", description: "Show the agent's spending cap, amount spent and wallet balance.", inputSchema: { json: { type: "object", properties: {} } } } },
   { toolSpec: { name: "run_check", description: "Buy one home-inspection check from the paid check service. Costs a small payment from the agent's budget.", inputSchema: { json: { type: "object", properties: { type: { type: "string", enum: [...CHECK_TYPES] } }, required: ["type"] } } } },
   { toolSpec: { name: "report_inspection", description: "Record the home-inspection result on-chain. passed=true only if every check passed. This never moves money; the buyer and seller must still both approve.", inputSchema: { json: { type: "object", properties: { passed: { type: "boolean" }, summary: { type: "string" } }, required: ["passed", "summary"] } } } },
 ];
 
-const SYSTEM = `You are the AI home-inspection agent for a real-estate purchase. The buyer has deposited 10% of the price in the seller's attorney escrow account.
-For the deal you are given: read the deal, then call get_transactions and confirm the 10% deposit is really in escrow on-chain (if it is not, stop and say so; do not buy checks). Then run every check (structure, roof, systems, pests) once, then call report_inspection:
+const SYSTEM = `You are the AI home-inspection agent for a real-estate purchase. The buyer has deposited 10% or 20% of the price in the seller's attorney escrow account.
+For the deal you are given: read the deal, then call get_transactions and confirm the deposit is really in escrow on-chain (if it is not, stop and say so; do not buy checks). Then run every check (structure, roof, systems, pests) once, then call report_inspection:
 passed=true only if every check passed, otherwise passed=false with the specific problem found.
 You cannot release money; the buyer and seller approve separately. Spend only what the checks cost; do not repeat a check.
 End with a short plain-language summary for the buyer: what you checked, what it cost, and the result.`;

@@ -12,7 +12,7 @@ const xrp = (wei: bigint) => `${ethers.formatEther(wei)} XRP`;
 export function toDealEvent(name: string, args: ethers.Result, deal?: ethers.Result): DealEvent | null {
   const dealId = args[0].toString();
   switch (name) {
-    case "DealOpened": return { name, dealId, price: xrp(args.price), deposit: xrp(args.deposit), property: args.property || PROPERTY };
+    case "DealOpened": return { name, dealId, price: xrp(args.price), deposit: xrp(args.deposit), depositPct: Number(args.depositBps) / 100, property: args.property || PROPERTY };
     case "InspectionRecorded": return { name, dealId, passed: args.passed, evidence: args.evidence, deposit: deal ? xrp(deal.deposit) : undefined, property: deal?.property };
     case "WalkthroughRecorded": return { name, dealId, passed: args.passed, evidence: args.notes, deposit: deal ? xrp(deal.deposit) : undefined, property: deal?.property };
     case "BuyerApproved": return { name, dealId, otherOk: deal?.sellerOk, property: deal?.property };

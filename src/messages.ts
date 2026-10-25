@@ -8,6 +8,7 @@ export interface DealEvent {
   property?: string;
   price?: string;     // formatted, e.g. "5.0 XRP"
   deposit?: string;
+  depositPct?: number; // 10 or 20, from the signed contract
   amount?: string;
   passed?: boolean;
   evidence?: string;  // inspection evidence or walkthrough notes
@@ -35,11 +36,11 @@ export function messagesFor(e: DealEvent): PartyMessage[] {
     case "DealOpened":
       return [
         msg("Buyer", "Attorney", "Deposit sent to your escrow",
-          `I signed the contract${home} at ${e.price} and sent my 10% deposit of ${e.deposit} to your escrow account. Please hold it until the inspection, my final walkthrough and both approvals are done.`),
+          `I signed the contract${home} at ${e.price} and sent my ${e.depositPct ?? 10}% deposit of ${e.deposit} to your escrow account. Please hold it until the inspection, my final walkthrough and both approvals are done.`),
         msg("Attorney", "Buyer", "Deposit received - receipt",
-          `Your 10% deposit of ${e.deposit} (home price ${e.price}) is now in my escrow account${home}. The seller cannot touch it yet. If the inspection or walkthrough fails, I return it to you in full.`),
+          `Your ${e.depositPct ?? 10}% deposit of ${e.deposit} (home price ${e.price}) is now in my escrow account${home}. The seller cannot touch it yet. If the inspection or walkthrough fails, I return it to you in full.`),
         msg("Attorney", "Seller", "Buyer's deposit is in escrow",
-          `The buyer signed${home} at ${e.price} and ${e.deposit} (10%) is now held in my escrow account. You are paid when the inspection passes, the buyer's final walkthrough passes, and you and the buyer both approve.`),
+          `The buyer signed${home} at ${e.price} and ${e.deposit} (${e.depositPct ?? 10}%) is now held in my escrow account. You are paid when the inspection passes, the buyer's final walkthrough passes, and you and the buyer both approve.`),
       ];
     case "InspectionRecorded":
       return e.passed

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 /// @title RealEstateEscrow
-/// @notice The buyer's 10% deposit is held in the seller's attorney's escrow account
+/// @notice The buyer's deposit (10% or 20% of the price, as the signed contract says) is held in the seller's attorney's escrow account
 ///         (this contract; only the attorney can cancel). The deposit is paid to the
 ///         seller, and the deal closes, only when ALL of these are true:
 ///           1. the home inspection passed,
@@ -16,6 +16,7 @@ contract RealEstateEscrow {
     struct Deal {
         uint256 price;
         uint256 deposit;
+        uint16 depositBps;
         uint64 deadline;
         Status status;
         bool inspectionDone;
@@ -27,7 +28,8 @@ contract RealEstateEscrow {
         string property;
     }
 
-    uint16 public constant DEPOSIT_BPS = 1000; // 10.00%
+    uint16 public constant DEPOSIT_10_PCT = 1000; // 10.00%
+    uint16 public constant DEPOSIT_20_PCT = 2000; // 20.00%
 
     address public immutable buyer;
     address public immutable seller;
@@ -36,7 +38,7 @@ contract RealEstateEscrow {
 
     mapping(uint256 => Deal) public deals;
 
-    event DealOpened(uint256 indexed dealId, uint256 price, uint256 deposit, uint64 deadline, string property);
+    event DealOpened(uint256 indexed dealId, uint256 price, uint256 deposit, uint64 deadline, string property, uint16 depositBps);
     event InspectionRecorded(uint256 indexed dealId, bool passed, string evidence);
     event WalkthroughRecorded(uint256 indexed dealId, bool passed, string notes);
     event BuyerApproved(uint256 indexed dealId);
@@ -50,6 +52,7 @@ contract RealEstateEscrow {
     error NotInspector();
     error BadDeal();
     error WrongDeposit();
+    error UnsupportedDeposit();
     error InspectionNotPassed();
     error WalkthroughNotPassed();
     error AlreadyDone();
@@ -69,19 +72,21 @@ contract RealEstateEscrow {
         inspector = _inspector;
     }
 
-    /// @notice Buyer signs the contract and deposits exactly 10% of the price into the attorney's escrow.
-    function openDeal(uint256 dealId, uint256 price, uint64 deadline, string calldata property) external payable {
+    /// @notice Buyer signs the contract and deposits exactly 10% or 20% (per the contract) of the price into the attorney's escrow.
+    function openDeal(uint256 dealId, uint256 price, uint16 depositBps, uint64 deadline, string calldata property) external payable {
         if (msg.sender != buyer) revert NotBuyer();
         Deal storage d = deals[dealId];
         if (d.status != Status.None || price == 0) revert BadDeal();
-        if (msg.value != (price * DEPOSIT_BPS) / 10_000) revert WrongDeposit();
+        if (depositBps != DEPOSIT_10_PCT && depositBps != DEPOSIT_20_PCT) revert UnsupportedDeposit();
+        if (msg.value != (price * depositBps) / 10_000) revert WrongDeposit();
         require(deadline > block.timestamp, "deadline in past");
         d.price = price;
         d.deposit = msg.value;
+        d.depositBps = depositBps;
         d.deadline = deadline;
         d.status = Status.Deposited;
         d.property = property;
-        emit DealOpened(dealId, price, msg.value, deadline, property);
+        emit DealOpened(dealId, price, msg.value, deadline, property, depositBps);
     }
 
     /// @notice Inspector records the home-inspection result (once). `evidence` is a report reference or audit hash.

@@ -17,6 +17,8 @@
     "ap4m:merchant": "tsx src/ap4m-merchant.ts",
     "agent": "tsx src/agent.ts",
     "deal": "tsx scripts/deal.ts",
+    "intake": "tsx scripts/intake.ts",
+    "test": "tsx test/contract-parser.ts",
     "status": "tsx scripts/status.ts",
     "typecheck": "tsc --noEmit"
   },
