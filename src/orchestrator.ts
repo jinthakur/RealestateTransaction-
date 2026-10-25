@@ -17,11 +17,12 @@ import fs from "node:fs";
 import {
   BedrockRuntimeClient, ConverseCommand, type ContentBlock, type Message, type Tool,
 } from "@aws-sdk/client-bedrock-runtime";
-import { AGENT_LOG, PORTAL_URL } from "./config.js";
+import { AGENT_LOG, PORTAL_URL, awsClientConfig } from "./config.js";
 import { InspectionSession } from "./agent.js";
 import { CHECK_TYPES } from "./mock-checks.js";
 import { type Party, msg } from "./messages.js";
 import { sendEmails } from "./announce.js";
+import { GetCallerIdentityCommand, STSClient } from "@aws-sdk/client-sts";
 
 const dealId = BigInt(process.argv[2] ?? 1);
 const TIMEOUT_MIN = Number(process.env.ORCH_TIMEOUT_MIN ?? 30);
@@ -148,7 +149,7 @@ Work in this order and keep going until the deal is Closed or Cancelled:
 You cannot approve for the buyer or seller and cannot move money. Use wait with 15 to 20 seconds so you react quickly. Do not repeat a check. When the deal is Closed or Cancelled, call finish with a short plain-language report: what you verified, what you read from the people involved, what it cost, the result, and who got the money.`;
 
 async function runBedrock() {
-  const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION ?? "us-east-1" });
+  const client = new BedrockRuntimeClient(awsClientConfig());
   const modelId = process.env.BEDROCK_MODEL_ID ?? "us.anthropic.claude-sonnet-4-6";
   const messages: Message[] = [{ role: "user", content: [{ text: `Run deal ${dealId} from deposit verification through to closing.` }] }];
 
@@ -178,6 +179,18 @@ async function runBedrock() {
   log("done", "Stopped: time or turn limit reached. Current state is on the dashboard.");
 }
 
-const mode = (process.env.AGENT_MODE ?? "rules").toLowerCase();
+/** Pre-flight: are the AWS credentials usable right now? If not the agent falls back to rules mode instead of crashing. */
+async function awsUsable(): Promise<boolean> {
+  try {
+    await new STSClient(awsClientConfig()).send(new GetCallerIdentityCommand({}));
+    return true;
+  } catch (e) {
+    log("think", `AWS credentials are not usable (${e instanceof Error ? e.message : String(e)}). Falling back to rules mode; refresh ${process.env.AWS_CREDENTIALS_FILE ?? "the AWS credentials"} (npm run aws:check) and restart for Bedrock.`);
+    return false;
+  }
+}
+
+const requested = (process.env.AGENT_MODE ?? "rules").toLowerCase();
+const mode = requested === "bedrock" && !(await awsUsable()) ? "rules" : requested;
 log("think", `Deal agent started for deal ${dealId} (mode=${mode}, portal=${PORTAL_URL}).`);
 if (mode === "bedrock") await runBedrock(); else await runRules();

@@ -31,6 +31,9 @@ Demo order: inspector uploads a document, types **yes/no** in the inspection ver
 ## Contract intake
 `INTAKE=1 REDEPLOY=1 npm run deploy` deploys only; `npm run intake -- 1` waits for a contract uploaded on the **attorney** page (file name contains "contract"), reads the contract date and a 10% or 20% deposit (`src/contract.ts`, regex first, Bedrock fallback), then calls `openDeal(dealId, price, depositBps, ...)`. Unreadable contract: no execution, email to buyer and attorney, wait for a new upload. The contract only accepts 1000 or 2000 bps. Samples in `sample-contracts/`, tests via `npm test`. The escrow ABI changed (new `depositBps`), so an old `deployment.json` needs `REDEPLOY=1`.
 
+## AWS credentials
+`AWS_CREDENTIALS_FILE` is re-read on every Bedrock call (`awsClientConfig` in `src/config.ts`). `npm run aws:check` / `aws:renew` use STS; the Workshop role cannot assume itself, so renewal there means pasting new credentials. The orchestrator falls back to rules mode when AWS is unusable. Log range lookback defaults to 2000 blocks (`LOG_LOOKBACK`) because the testnet RPC rejects large ranges.
+
 ## Inspection verification
 The inspector page has a text box where the inspector types `yes` or `no` (does the home pass?). The portal rejects anything else. PASS requires `yes` AND every item passing; `no` always fails the report, and the agent cannot pass over a failed report.
 

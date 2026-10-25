@@ -127,7 +127,7 @@ Handy commands: `npm run status -- 1` (on-chain history), `npm run ap4m -- statu
 
 See `.env.example`. Key settings: `MNEMONIC` (testnet only), `AGENT_MODE=bedrock|rules`, `AWS_REGION`, `BEDROCK_MODEL_ID`, `AWS_CREDENTIALS_FILE` (PowerShell-style file with temporary AWS credentials), `PAYMENTS=ap4m|xrp`, `AP4M_TEAM_NAME`, `MERCHANT_ID`, `MERCHANT_PAYOUT`, `AP4M_AGENT_ROLE=buyer`, `SMTP_*` and `NOTIFY_TO` (all emails go to one mailbox; the subject says "Seller to Attorney message", etc.; SMTP certificate checking is disabled for the hackathon mail host).
 
-`AGENT_MODE=rules` runs the same flow without AWS and makes a reliable fallback. `PAYMENTS=xrp` pays checks in native XRP (x402-style) instead of AP4M.
+`AGENT_MODE=rules` runs the same flow without AWS and makes a reliable fallback. The deal agent checks the AWS credentials at start and falls back to rules mode by itself if they are expired. `npm run aws:check` tests the token; `npm run aws:renew` (optionally `-- --watch`) re-assumes the role to refresh it, which only works while the token is still valid and the role can assume itself. The AWS Workshop role cannot, so there you paste fresh credentials into `AWS_CREDENTIALS_FILE`; it is re-read on every Bedrock call, so no restart is needed. `PAYMENTS=xrp` pays checks in native XRP (x402-style) instead of AP4M.
 
 ## Live testnet evidence
 

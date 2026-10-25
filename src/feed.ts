@@ -31,7 +31,7 @@ export async function feed() {
 
   // Replay the chain events in order so each message knows what had already happened.
   const latest = await p.getBlockNumber();
-  const from = Math.max(0, latest - Number(process.env.LOG_LOOKBACK ?? 10_000));
+  const from = Math.max(0, latest - Number(process.env.LOG_LOOKBACK ?? 2_000));
   const logs: { name: string; args: any; tx: string; block: number; index: number }[] = [];
   for (const name of NAMES) {
     try {

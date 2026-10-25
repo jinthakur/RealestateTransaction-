@@ -4,12 +4,29 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ethers } from "ethers";
 
-// Optional: load temporary AWS credentials from a PowerShell-style file ($Env:NAME="value" lines)
-// so every terminal works without dot-sourcing it. Existing environment variables win.
-if (process.env.AWS_CREDENTIALS_FILE && fs.existsSync(process.env.AWS_CREDENTIALS_FILE)) {
-  for (const m of fs.readFileSync(process.env.AWS_CREDENTIALS_FILE, "utf8").matchAll(/\$Env:(\w+)\s*=\s*"([^"]*)"/g)) {
-    if (!(m[1] in process.env)) process.env[m[1]] = m[2];
-  }
+// Optional: temporary AWS credentials in a PowerShell-style file ($Env:NAME="value" lines),
+// so every terminal works without dot-sourcing it. The file is re-read whenever Bedrock is
+// called (see awsClientConfig), so `npm run aws:renew` takes effect without restarting anything.
+export function readAwsCredentialsFile(): Record<string, string> {
+  const file = process.env.AWS_CREDENTIALS_FILE;
+  const out: Record<string, string> = {};
+  if (!file || !fs.existsSync(file)) return out;
+  for (const m of fs.readFileSync(file, "utf8").matchAll(/\$Env:(\w+)\s*=\s*"([^"]*)"/g)) out[m[1]] = m[2];
+  return out;
+}
+
+/** Client config for AWS SDK clients: region plus credentials from the file (fresh on every use), else the default chain. */
+export function awsClientConfig() {
+  const region = process.env.AWS_REGION ?? "us-east-1";
+  if (!process.env.AWS_CREDENTIALS_FILE) return { region };
+  return {
+    region,
+    credentials: async () => {
+      const c = readAwsCredentialsFile();
+      if (!c.AWS_ACCESS_KEY_ID || !c.AWS_SECRET_ACCESS_KEY) throw new Error(`no AWS credentials in ${process.env.AWS_CREDENTIALS_FILE}`);
+      return { accessKeyId: c.AWS_ACCESS_KEY_ID, secretAccessKey: c.AWS_SECRET_ACCESS_KEY, sessionToken: c.AWS_SESSION_TOKEN };
+    },
+  };
 }
 
 export const RPC_URL =process.env.RPC_URL ?? "https://rpc.testnet.xrplevm.org";

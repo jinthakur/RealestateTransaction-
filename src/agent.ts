@@ -18,7 +18,7 @@ import { ethers } from "ethers";
 import {
   BedrockRuntimeClient, ConverseCommand, type ContentBlock, type Message, type Tool,
 } from "@aws-sdk/client-bedrock-runtime";
-import { AUDIT_DIR, SERVICE_URL, escrowContract, fmt, provider, txLink, wallet } from "./config.js";
+import { AUDIT_DIR, SERVICE_URL, awsClientConfig, escrowContract, fmt, provider, txLink, wallet } from "./config.js";
 import { AgentWallet, PaymentRefused } from "./payments.js";
 import { AP4M_ENABLED, Ap4mBuyer, rlusd } from "./ap4m.js";
 import { CHECK_TYPES, type CheckType } from "./mock-checks.js";
@@ -68,7 +68,7 @@ export class InspectionSession {
   async getTransactions() {
     const p = provider();
     const latest = await p.getBlockNumber();
-    const from = Math.max(0, latest - Number(process.env.LOG_LOOKBACK ?? 10_000));
+    const from = Math.max(0, latest - Number(process.env.LOG_LOOKBACK ?? 2_000));
     const events: { event: string; tx: string; block: number }[] = [];
     for (const name of ["DealOpened", "InspectionRecorded", "WalkthroughRecorded", "BuyerApproved", "SellerApproved", "DealClosed", "DealCancelled"]) {
       for (const log of await this.escrow.queryFilter(this.escrow.filters[name](this.dealId), from, latest)) {
@@ -233,7 +233,7 @@ You cannot release money; the buyer and seller approve separately. Spend only wh
 End with a short plain-language summary for the buyer: what you checked, what it cost, and the result.`;
 
 export async function runBedrock(s: InspectionSession) {
-  const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION ?? "us-east-1" });
+  const client = new BedrockRuntimeClient(awsClientConfig());
   const modelId = process.env.BEDROCK_MODEL_ID ?? "us.anthropic.claude-sonnet-4-6";
   const messages: Message[] = [{ role: "user", content: [{ text: `Inspect the home for deal ${s.dealId} and report the result.` }] }];
 
